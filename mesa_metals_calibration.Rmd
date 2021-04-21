@@ -1,0 +1,23 @@
+---
+title: "Metals in MESA Calibration Data Cleaning and Analysis Replication"
+author: "Emil Hafeez, eh2928"
+geometry: "left=2.57cm,right=2.57cm,top=2.57cm,bottom=2.57cm"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
+    toc_depth: 3
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+header-includes:
+- \usepackage{fancyhdr}
+- \usepackage{lipsum}
+- \pagestyle{fancy}
+- \fancyhead[R]{\thepage}
+- \fancypagestyle{plain}{\pagestyle{fancy}}
+--- 
+
+# Section 1: Setup
+
