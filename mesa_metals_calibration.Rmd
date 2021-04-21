@@ -21,3 +21,66 @@ header-includes:
 
 # Section 1: Setup
 
+```{r, include = F}
+library(tidyverse)
+library(readxl)
+library(haven)
+```
+
+```{r, include = F}
+set.seed(1107)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+```
+
+```{r}
+#read in, make csv for safekeeping and easier downstream editing
+arsenic_As_xl = read_excel(
+  "./data/Calibration_check_MESA_04012021.xlsx", 
+  sheet = "arsenic_As ",
+  range = "A2:E38") %>% 
+  janitor::clean_names() %>% 
+  mutate(date = as.Date(as.POSIXct(date)))
+```
+
+# Section 2: Testing how they got their regression results
+
+It seems like Rony is saying that Kathrin's approach in the excel sheet isn't precisely the way that their program does it, and that to replicate their results might need the manipulations that Rony describes (and seems to use the last sheet from the Excel).
+
+```{r}
+arsenic_As_xl_tester = 
+  arsenic_As_xl %>% 
+  filter(date == "2020-01-08" & no_cal == 1)
+
+glm_fit = glm(std_conc_ppb ~ as_o_blk_corrected, 
+    data = arsenic_As_xl_tester,
+    family = gaussian(link = "identity")) 
+
+summary(glm_fit)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
