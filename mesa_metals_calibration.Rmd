@@ -24,7 +24,7 @@ header-includes:
 ```{r, include = F}
 library(tidyverse)
 library(readxl)
-library(haven)
+library(modelr)
 library(openxlsx)
 ```
 
@@ -50,7 +50,7 @@ arsenic_As_xl = read_excel(
 
 # Section 2: Testing how they got their regression results
 
-It seems like Rony is saying that Kathrin's approach in the excel sheet isn't precisely the way that their program does it, and that to replicate their results might need the manipulations that Rony describes (and seems to use the last sheet from the Excel).
+It seems like Rony is saying that Kathrin's approach in the Excel sheet isn't precisely the way that their program does it, and that to replicate their results might need the manipulations that Rony describes (and seems to use the last sheet from the Excel). However these manipulations seem to appear in the Excel sheet (BLK corrected column name) and do not create the regression results in the Excel.
 
 ```{r}
 arsenic_As_xl_tester = 
@@ -63,69 +63,20 @@ glm_fit = glm(as_o_blk_corrected ~ std_conc_ppb,
 
 summary(glm_fit)
 ```
-let's try manipulating it the way rony describes to see if we get these values
 ```{r try again}
-#take1
-#take the aso_cps and divide it by the std_conc_ppb, then subtract off the first aso_cps
-
-# arsenic_As_xl_tester_2 = 
-#   arsenic_As_xl %>% 
-#   filter(date == "2020-01-08" & no_cal == 1) %>% 
-#   mutate(
-#     as_o_cps = ((as_o_cps/std_conc_ppb)-14)
-#   ) %>% 
-#   mutate(
-#     as_o_cps = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
-#   )
-# 
-# 
-# glm_fit = glm(as_o_cps ~ std_conc_ppb, 
-#     data = arsenic_As_xl_tester_2,
-#     family = gaussian(link = "identity")) 
-# 
-# summary(glm_fit)
-# 
-# #take2
-# arsenic_As_xl_tester_2 = 
-#   arsenic_As_xl %>% 
-#   filter(date == "2020-01-08" & no_cal == 1) %>% 
+#Rony's email describes the following manipulation conducted by their program: take the aso_cps and divide it by the std_conc_ppb, then subtract off the first aso_cps aka the blank signal. This does not replicate what is in the Excel. Using the blank-corrected values from the excl does not either.
+# arsenic_As_xl_tester_3 =
+#   arsenic_As_xl %>%
+#   filter(date == "2020-01-08" & no_cal == 1) %>%
 #   mutate(
 #     zeroer = ((as_o_cps/std_conc_ppb))
-#   ) %>% 
-#   mutate(
-#     zeroer = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
-#   ) %>% 
-#   mutate(
-#     zeroer = (zeroer - (arsenic_As_xl_tester_2$as_o_cps[1]))
-#   )
+#   ) 
 # 
-# glm_fit = glm(zeroer ~ std_conc_ppb, 
-#     data = arsenic_As_xl_tester_2,
-#     family = gaussian(link = "identity")) 
-# 
-# summary(glm_fit)
-# 
-# 
-# #take3 what if we drop the blank?
-# arsenic_As_xl_tester_3 = 
-#   arsenic_As_xl %>% 
-#   filter(date == "2020-01-08" & no_cal == 1) %>% 
-#   mutate(
-#     zeroer = ((as_o_cps/std_conc_ppb))
-#   ) %>% 
-#   mutate(
-#     zeroer = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
-#   ) %>% 
-#   mutate(
-#     zeroer = (zeroer-as_o_cps[1])
-#   )
-# 
-# glm_fit = glm(zeroer ~ std_conc_ppb, 
+# glm_fit = glm(zeroer ~ std_conc_ppb,
 #     data = arsenic_As_xl_tester_3,
-#     family = gaussian(link = "identity")) 
+#     family = gaussian(link = "identity"))
 # 
 # summary(glm_fit)
-
 ```
 
 # Section 3: Moving into Iteration
@@ -146,7 +97,6 @@ arsenic_results_df =
 ```
 
 Now let's work on iterating for all elements (organized by Excel sheet).
-
 ```{r}
 path =
   "./data/Calibration_check_MESA_04012021.xlsx"
@@ -156,42 +106,41 @@ mesa_metals_list = path %>%
   set_names() %>%
   map(read_excel, path = path, range = "A2:E38", col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
 #don't need the first and last sheet, "General" and "Distribution_sample_std"
-
 mesa_metals_list = 
   mesa_metals_list[-c(1,19)]
-
-#test = as_tibble(foo)
-#test = as_tibble(matrix(unlist(foo)))
-# read_excel_allsheets <- function(filename, tibble = TRUE) {
-#     sheets <- readxl::excel_sheets(filename)
-#     x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
-#     if(!tibble) x <- lapply(x, as.data.frame)
-#     names(x) <- sheets
-#     x
-# }
-# testingdataframes = read_excel_allsheets("./data/Calibration_check_MESA_04012021.xlsx")
 ```
 
+Quick cleanup.
+```{r}
+rm(arsenic_results_df, glm_fit)
+```
 
 Now to iterate the regressions for each of the (date,no_cal) groups within each element.
-
 ```{r}
-test = as_tibble(matrix(foo))
+mesa_metals_df = as_tibble(matrix(mesa_metals_list)) %>% rename(elements_data = V1)
 
-arsenic_results_df =
-  arsenic_As_xl %>%
-  nest(data = c(std_conc_ppb, as_o_cps, as_o_blk_corrected)) %>%
-  mutate(
-    models =
-      map(.x = data, ~glm(as_o_blk_corrected ~ std_conc_ppb, data = .x,
-                     family = gaussian(link = "identity"))),
-    results = map(models, broom::tidy)
-  ) %>%
-  select(date, no_cal, results) %>%
-  unnest(results)
+mesa_metals_df = 
+  mesa_metals_df %>% 
+  add_column(elements = c("cobalt_Co", "nickel_Ni", "zinc_Zn", "copper_Cu", "strontium_Sr", "molybdenum_Mo", "antimony_Sb", "cesium_Cs", "barium_Ba", "tungsten_W", "thallium_Tl", "lead_Pb", "uranium_U", "manganese_Mn", "selenium_Se", "arsenic_As", "cadmium_Cd")) %>% 
+  select(elements, everything())
+
+# mesa_metals_df = 
+#   mesa_metals_df %>% 
+#   unnest(elements_data, 
+#          ptype = 
+#            tibble(bar = 
+#                     tibble(..1$date = character(), ..6$date = character())))
+
 ```
 
 
+
+#Section 4 WIP Clutter
+Some columns only have 37 rows of data, and I selectedf 38 to catch all of it. Therefore there are entirely blank rows in the list-column's nested data. The below does not remove it, obviously; ignorable for now but must troubleshoot
+```{r}
+#this cleaning must be revisited, listcolumn/tibble troubles
+# mesa_metals_df = mesa_metals_df[rowSums(is.na(mesa_metals_df)) != ncol(mesa_metals_df),]
+```
 
 
 
