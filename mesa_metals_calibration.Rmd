@@ -68,63 +68,63 @@ let's try manipulating it the way rony describes to see if we get these values
 #take1
 #take the aso_cps and divide it by the std_conc_ppb, then subtract off the first aso_cps
 
-arsenic_As_xl_tester_2 = 
-  arsenic_As_xl %>% 
-  filter(date == "2020-01-08" & no_cal == 1) %>% 
-  mutate(
-    as_o_cps = ((as_o_cps/std_conc_ppb)-14)
-  ) %>% 
-  mutate(
-    as_o_cps = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
-  )
-
-
-glm_fit = glm(as_o_cps ~ std_conc_ppb, 
-    data = arsenic_As_xl_tester_2,
-    family = gaussian(link = "identity")) 
-
-summary(glm_fit)
-
-#take2
-arsenic_As_xl_tester_2 = 
-  arsenic_As_xl %>% 
-  filter(date == "2020-01-08" & no_cal == 1) %>% 
-  mutate(
-    zeroer = ((as_o_cps/std_conc_ppb))
-  ) %>% 
-  mutate(
-    zeroer = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
-  ) %>% 
-  mutate(
-    zeroer = (zeroer - (arsenic_As_xl_tester_2$as_o_cps[1]))
-  )
-
-glm_fit = glm(zeroer ~ std_conc_ppb, 
-    data = arsenic_As_xl_tester_2,
-    family = gaussian(link = "identity")) 
-
-summary(glm_fit)
-
-
-#take3 what if we drop the blank?
-arsenic_As_xl_tester_3 = 
-  arsenic_As_xl %>% 
-  filter(date == "2020-01-08" & no_cal == 1) %>% 
-  mutate(
-    zeroer = ((as_o_cps/std_conc_ppb))
-  ) %>% 
-  mutate(
-    zeroer = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
-  ) %>% 
-  mutate(
-    zeroer = (zeroer-as_o_cps[1])
-  )
-
-glm_fit = glm(zeroer ~ std_conc_ppb, 
-    data = arsenic_As_xl_tester_3,
-    family = gaussian(link = "identity")) 
-
-summary(glm_fit)
+# arsenic_As_xl_tester_2 = 
+#   arsenic_As_xl %>% 
+#   filter(date == "2020-01-08" & no_cal == 1) %>% 
+#   mutate(
+#     as_o_cps = ((as_o_cps/std_conc_ppb)-14)
+#   ) %>% 
+#   mutate(
+#     as_o_cps = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
+#   )
+# 
+# 
+# glm_fit = glm(as_o_cps ~ std_conc_ppb, 
+#     data = arsenic_As_xl_tester_2,
+#     family = gaussian(link = "identity")) 
+# 
+# summary(glm_fit)
+# 
+# #take2
+# arsenic_As_xl_tester_2 = 
+#   arsenic_As_xl %>% 
+#   filter(date == "2020-01-08" & no_cal == 1) %>% 
+#   mutate(
+#     zeroer = ((as_o_cps/std_conc_ppb))
+#   ) %>% 
+#   mutate(
+#     zeroer = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
+#   ) %>% 
+#   mutate(
+#     zeroer = (zeroer - (arsenic_As_xl_tester_2$as_o_cps[1]))
+#   )
+# 
+# glm_fit = glm(zeroer ~ std_conc_ppb, 
+#     data = arsenic_As_xl_tester_2,
+#     family = gaussian(link = "identity")) 
+# 
+# summary(glm_fit)
+# 
+# 
+# #take3 what if we drop the blank?
+# arsenic_As_xl_tester_3 = 
+#   arsenic_As_xl %>% 
+#   filter(date == "2020-01-08" & no_cal == 1) %>% 
+#   mutate(
+#     zeroer = ((as_o_cps/std_conc_ppb))
+#   ) %>% 
+#   mutate(
+#     zeroer = replace(arsenic_As_xl_tester_2$as_o_cps,1,0)
+#   ) %>% 
+#   mutate(
+#     zeroer = (zeroer-as_o_cps[1])
+#   )
+# 
+# glm_fit = glm(zeroer ~ std_conc_ppb, 
+#     data = arsenic_As_xl_tester_3,
+#     family = gaussian(link = "identity")) 
+# 
+# summary(glm_fit)
 
 ```
 
@@ -132,35 +132,64 @@ summary(glm_fit)
 Let's iterate for one element.
 
 ```{r}
-arsenic_results_df = 
-  arsenic_As_xl %>% 
-  nest(data = -date,-no_cal) %>% 
+arsenic_results_df =
+  arsenic_As_xl %>%
+  nest(data = c(std_conc_ppb, as_o_cps, as_o_blk_corrected)) %>%
   mutate(
-    models = 
+    models =
       map(.x = data, ~glm(as_o_blk_corrected ~ std_conc_ppb, data = .x,
                      family = gaussian(link = "identity"))),
     results = map(models, broom::tidy)
-  ) %>% 
-  select(date, no_cal, results) %>% 
+  ) %>%
+  select(date, no_cal, results) %>%
   unnest(results)
 ```
 
 Now let's work on iterating for all elements (organized by Excel sheet).
 
 ```{r}
-path = 
+path =
   "./data/Calibration_check_MESA_04012021.xlsx"
 
-foo = path %>%
+mesa_metals_list = path %>%
   excel_sheets() %>%
   set_names() %>%
-  map(read_excel, path = path)
+  map(read_excel, path = path, range = "A2:E38", col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
+#don't need the first and last sheet, "General" and "Distribution_sample_std"
 
-foo = foo[-c(1,19)]
+mesa_metals_list = 
+  mesa_metals_list[-c(1,19)]
 
-as.data.frame(foo)
+#test = as_tibble(foo)
+#test = as_tibble(matrix(unlist(foo)))
+# read_excel_allsheets <- function(filename, tibble = TRUE) {
+#     sheets <- readxl::excel_sheets(filename)
+#     x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
+#     if(!tibble) x <- lapply(x, as.data.frame)
+#     names(x) <- sheets
+#     x
+# }
+# testingdataframes = read_excel_allsheets("./data/Calibration_check_MESA_04012021.xlsx")
 ```
 
+
+Now to iterate the regressions for each of the (date,no_cal) groups within each element.
+
+```{r}
+test = as_tibble(matrix(foo))
+
+arsenic_results_df =
+  arsenic_As_xl %>%
+  nest(data = c(std_conc_ppb, as_o_cps, as_o_blk_corrected)) %>%
+  mutate(
+    models =
+      map(.x = data, ~glm(as_o_blk_corrected ~ std_conc_ppb, data = .x,
+                     family = gaussian(link = "identity"))),
+    results = map(models, broom::tidy)
+  ) %>%
+  select(date, no_cal, results) %>%
+  unnest(results)
+```
 
 
 
