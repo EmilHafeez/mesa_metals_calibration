@@ -43,7 +43,7 @@ options(
 arsenic_As_xl = read_excel(
   "./data/Calibration_check_MESA_04012021.xlsx", 
   sheet = "arsenic_As ",
-  range = "A2:E38") %>% 
+  range = "A1:E38") %>% 
   janitor::clean_names() %>% 
   mutate(date = as.Date(as.POSIXct(date)))
 ```
@@ -85,6 +85,7 @@ Let's iterate for one element.
 ```{r}
 arsenic_results_df =
   arsenic_As_xl %>%
+  filter(!is.na(date)) %>% 
   nest(data = c(std_conc_ppb, as_o_cps, as_o_blk_corrected)) %>%
   mutate(
     models =
@@ -105,7 +106,7 @@ path =
 mesa_metals_list = path %>%
   excel_sheets() %>%
   set_names() %>%
-  map(read_excel, path = path, range = "A2:E38", col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
+  map(read_excel, path = path, range = "A1:E38", col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
 #don't need the first and last sheet, "General" and "Distribution_sample_std"
 mesa_metals_list = 
   mesa_metals_list[-c(1,19)]
@@ -118,22 +119,17 @@ rm(arsenic_results_df, glm_fit)
 
 Now to iterate the regressions for each of the (date,no_cal) groups within each element.
 ```{r}
-mesa_metals_df = as_tibble(matrix(mesa_metals_list)) %>% rename(elements_data = V1)
+mesa_metals_df = as_tibble(matrix(mesa_metals_list)) %>% 
+  rename(elements_data = V1)
 
 mesa_metals_df = 
   mesa_metals_df %>% 
   add_column(elements = c("cobalt_Co", "nickel_Ni", "zinc_Zn", "copper_Cu", "strontium_Sr", "molybdenum_Mo", "antimony_Sb", "cesium_Cs", "barium_Ba", "tungsten_W", "thallium_Tl", "lead_Pb", "uranium_U", "manganese_Mn", "selenium_Se", "arsenic_As", "cadmium_Cd")) %>% 
   select(elements, everything())
 
-
-
-
 mesa_metals_df =
   mesa_metals_df %>%
-  unnest(elements_data,
-         ptype =
-           tibble(bar =
-                    tibble(..1$date = character(), ..6$date = character())))
+  unnest(elements_data)
 
 ```
 
