@@ -79,7 +79,7 @@ summary(glm_fit)
 # summary(glm_fit)
 ```
 
-# Section 3: Moving into Iteration
+# Section 3a: Moving into Iteration
 Let's iterate for one element.
 
 ```{r}
@@ -96,6 +96,7 @@ arsenic_results_df =
   unnest(results)
 ```
 
+# Section 3b: All Element Iteration
 Now let's work on iterating for all elements (organized by Excel sheet).
 ```{r}
 path =
@@ -124,19 +125,22 @@ mesa_metals_df =
   add_column(elements = c("cobalt_Co", "nickel_Ni", "zinc_Zn", "copper_Cu", "strontium_Sr", "molybdenum_Mo", "antimony_Sb", "cesium_Cs", "barium_Ba", "tungsten_W", "thallium_Tl", "lead_Pb", "uranium_U", "manganese_Mn", "selenium_Se", "arsenic_As", "cadmium_Cd")) %>% 
   select(elements, everything())
 
-# mesa_metals_df = 
-#   mesa_metals_df %>% 
-#   unnest(elements_data, 
-#          ptype = 
-#            tibble(bar = 
-#                     tibble(..1$date = character(), ..6$date = character())))
+
+
+
+mesa_metals_df =
+  mesa_metals_df %>%
+  unnest(elements_data,
+         ptype =
+           tibble(bar =
+                    tibble(..1$date = character(), ..6$date = character())))
 
 ```
 
 
 
 #Section 4 WIP Clutter
-Some columns only have 37 rows of data, and I selectedf 38 to catch all of it. Therefore there are entirely blank rows in the list-column's nested data. The below does not remove it, obviously; ignorable for now but must troubleshoot
+Some columns only have 37 rows of data, and I selected 38 to catch all of it. Therefore there are entirely blank rows in the list-column's nested data. The below does not remove it, obviously; ignorable for now but must troubleshoot
 ```{r}
 #this cleaning must be revisited, listcolumn/tibble troubles
 # mesa_metals_df = mesa_metals_df[rowSums(is.na(mesa_metals_df)) != ncol(mesa_metals_df),]
