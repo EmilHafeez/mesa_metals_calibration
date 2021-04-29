@@ -133,8 +133,30 @@ ggplot(
   geom_point() + 
   scale_x_continuous(breaks = seq(0, 5, 1)) +
   scale_y_continuous(breaks = seq(0, 50000, 10000)) +
-  labs(color = "Regressions per \nDate.CalibrationNumber",
-       shape = "Regressions per \nDate.CalibrationNumber")
+    labs(color = "Regressions per \nDate.CalibrationNumber",
+         shape = "Regressions per \nDate.CalibrationNumber",
+         title = "Visualizing Slopes vs Intercepts", 
+         caption = "Examining the variability of arsenic as a case study")
+```
+#troubleshooting the above plot
+```{r}
+arsenic_results_df %>% 
+  mutate(date = as.factor(date)) %>% 
+ggplot(
+  aes(
+    x = std_conc_ppb, 
+    y = as_o_blk_corrected, 
+    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
+    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
+  ) +
+  geom_point() + 
+  scale_x_continuous(breaks = seq(0, 5, 1)) +
+  scale_y_continuous(breaks = seq(0, 50000, 10000)) +
+    labs(color = "Regressions per \nDate.CalibrationNumber",
+         shape = "Regressions per \nDate.CalibrationNumber",
+         title = "Visualizing Slopes vs Intercepts", 
+         caption = "Examining the variability of arsenic as a case study")
 ```
 
 
@@ -148,16 +170,14 @@ path =
 mesa_metals_list = path %>%
   excel_sheets() %>%
   set_names() %>%
-  map(read_excel, path = path, range = "A1:E38", col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
+  map(read_excel, 
+      path = path, 
+      range = "A2:E38", 
+      col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
 
 #don't need the first and last sheet, "General" and "Distribution_sample_std"
 mesa_metals_list = 
   mesa_metals_list[-c(1,19)]
-```
-
-Quick cleanup.
-```{r}
-rm(arsenic_results_df, glm_fit)
 ```
 
 Now to iterate the regressions for each of the (date,no_cal) groups within each element.
@@ -172,20 +192,59 @@ mesa_metals_df =
 
 mesa_metals_df =
   mesa_metals_df %>%
-  unnest(elements_data)
+  unnest(cols = elements_data) %>% 
+  filter(!is.na(date))
 
 ```
 
 #Section 6: Plot All Elements
 
-#Section 4 WIP Clutter
-Some columns only have 37 rows of data, and I selected 38 to catch all of it. Therefore there are entirely blank rows in the list-column's nested data. The below does not remove it, obviously; ignorable for now but must troubleshoot
+Regression Lines
 ```{r}
-#this cleaning must be revisited, listcolumn/tibble troubles
-# mesa_metals_df = mesa_metals_df[rowSums(is.na(mesa_metals_df)) != ncol(mesa_metals_df),]
+mesa_metals_df %>% 
+  mutate(date = as.factor(date)) %>% 
+ggplot(
+  aes(
+    x = std_conc_ppb, 
+    y = cps_blk_corrected, 
+    group = interaction(date,no_cal), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))))
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) + 
+    labs(color = "Regressions per \nDate.CalibrationNumber",
+         title = "Regressing Corrected Blank Concentration on Standard Concentration", 
+         subtitle = "Faceted by Elements", 
+         caption = "Examining the variability between regression lines, by element, per date:calibration group") +
+  facet_wrap(~elements, scales = "free")
+```
+
+Intercepts vs Slopes
+```{r}
+mesa_metals_df %>% 
+  mutate(date = as.factor(date)) %>% 
+ggplot(
+  aes(
+    x = std_conc_ppb, 
+    y = as_o_blk_corrected, 
+    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
+    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
+  ) +
+  geom_point() + 
+  scale_x_continuous(breaks = seq(0, 5, 1)) +
+  scale_y_continuous(breaks = seq(0, 50000, 10000)) +
+  labs(color = "Regressions per \nDate.CalibrationNumber",
+       shape = "Regressions per \nDate.CalibrationNumber")
 ```
 
 
 
+#Section 4 WIP Clutter
+Fix the arsenic scatterplot:
+pivot the results_df so that the estimate and the intercept are in their own columns, and then graph these against each other per date:no_cal
 
+Tune the caption and stuff for it too
 
+and then; do this for the last section. I guess run the same map functions as the arsenic_results_df and then pivot in the same way as the above chart; and then plot this as above
+
+Then... polish this up nicely for sharing
