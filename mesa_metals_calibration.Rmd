@@ -34,57 +34,61 @@ knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 knitr::opts_chunk$set(echo = TRUE)
 options(
   ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
+  ggplot2.continuous.fill = "viridis",
+  ggplot2.discrete.colour = "viridis",
+  ggplot2.discrete.fill = "viridis"
 )
 ```
 
 ```{r}
 #read in, make csv for safekeeping and easier downstream editing
-arsenic_As_xl = read_excel(
+arsenic_As_df = read_excel(
   "./data/Calibration_check_MESA_04012021.xlsx", 
   sheet = "arsenic_As ",
   range = "A1:E38") %>% 
   janitor::clean_names() %>% 
-  mutate(date = as.Date(as.POSIXct(date)))
+  mutate(date = as.Date(as.POSIXct(date))) %>% 
+  filter(!is.na(date))
 ```
 
 # Section 2: Testing how they got their regression results
 
-It seems like Rony is saying that Kathrin's approach in the Excel sheet isn't precisely the way that their program does it, and that to replicate their results might need the manipulations that Rony describes (and seems to use the last sheet from the Excel). However these manipulations seem to appear in the Excel sheet (BLK corrected column name) and do not create the regression results in the Excel.
-
 ```{r}
-arsenic_As_xl_tester = 
-  arsenic_As_xl %>% 
+arsenic_As_test = 
+  arsenic_As_df %>% 
   filter(date == "2020-01-08" & no_cal == 1)
 
 glm_fit = glm(as_o_blk_corrected ~ std_conc_ppb, 
-    data = arsenic_As_xl_tester,
+    data = arsenic_As_test,
     family = gaussian(link = "identity")) 
 
 summary(glm_fit)
 ```
+
 ```{r try again}
+# It seems like Rony is saying that Kathrin's approach in the Excel sheet isn't precisely the way that their program does it, and that to replicate their results might need the manipulations that Rony describes (and seems to use the last sheet from the Excel). However these manipulations seem to appear in the Excel sheet (BLK corrected column name) and do not create the regression results in the Excel.
+
 #Rony's email describes the following manipulation conducted by their program: take the aso_cps and divide it by the std_conc_ppb, then subtract off the first aso_cps aka the blank signal. This does not replicate what is in the Excel. Using the blank-corrected values from the excl does not either.
-# arsenic_As_xl_tester_3 =
-#   arsenic_As_xl %>%
+# arsenic_As_test_3 =
+#   arsenic_As_df %>%
 #   filter(date == "2020-01-08" & no_cal == 1) %>%
 #   mutate(
 #     zeroer = ((as_o_cps/std_conc_ppb))
 #   ) 
 # 
 # glm_fit = glm(zeroer ~ std_conc_ppb,
-#     data = arsenic_As_xl_tester_3,
+#     data = arsenic_As_test_3,
 #     family = gaussian(link = "identity"))
 # 
 # summary(glm_fit)
 ```
 
-# Section 3a: Moving into Iteration
+# Section 3: Iterate Regression for All Arsenic
 Let's iterate for one element.
 
 ```{r}
 arsenic_results_df =
-  arsenic_As_xl %>%
+  arsenic_As_df %>%
   filter(!is.na(date)) %>% 
   nest(data = c(std_conc_ppb, as_o_cps, as_o_blk_corrected)) %>%
   mutate(
@@ -97,7 +101,45 @@ arsenic_results_df =
   unnest(results)
 ```
 
-# Section 3b: All Element Iteration
+# Section 4: Plot Arsenic Regression Lines and Intercept vs Slope
+
+Regression Lines
+```{r}
+arsenic_As_df %>% 
+  mutate(date = as.factor(date)) %>% 
+ggplot(
+  aes(
+    x = std_conc_ppb, 
+    y = as_o_blk_corrected, 
+    group = interaction(date,no_cal), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) + 
+  scale_y_continuous(breaks = seq(0, 50000, 10000)) +
+    labs(color = "Regressions per \nDate.CalibrationNumber")
+```
+Intercepts vs Slopes
+```{r}
+arsenic_As_df %>% 
+  mutate(date = as.factor(date)) %>% 
+ggplot(
+  aes(
+    x = std_conc_ppb, 
+    y = as_o_blk_corrected, 
+    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
+    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
+  ) +
+  geom_point() + 
+  scale_x_continuous(breaks = seq(0, 5, 1)) +
+  scale_y_continuous(breaks = seq(0, 50000, 10000)) +
+  labs(color = "Regressions per \nDate.CalibrationNumber",
+       shape = "Regressions per \nDate.CalibrationNumber")
+```
+
+
+
+# Section 5: All Element Iteration
 Now let's work on iterating for all elements (organized by Excel sheet).
 ```{r}
 path =
@@ -107,6 +149,7 @@ mesa_metals_list = path %>%
   excel_sheets() %>%
   set_names() %>%
   map(read_excel, path = path, range = "A1:E38", col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
+
 #don't need the first and last sheet, "General" and "Distribution_sample_std"
 mesa_metals_list = 
   mesa_metals_list[-c(1,19)]
@@ -133,7 +176,7 @@ mesa_metals_df =
 
 ```
 
-
+#Section 6: Plot All Elements
 
 #Section 4 WIP Clutter
 Some columns only have 37 rows of data, and I selected 38 to catch all of it. Therefore there are entirely blank rows in the list-column's nested data. The below does not remove it, obviously; ignorable for now but must troubleshoot
@@ -141,15 +184,6 @@ Some columns only have 37 rows of data, and I selected 38 to catch all of it. Th
 #this cleaning must be revisited, listcolumn/tibble troubles
 # mesa_metals_df = mesa_metals_df[rowSums(is.na(mesa_metals_df)) != ncol(mesa_metals_df),]
 ```
-
-
-
-
-
-
-
-
-
 
 
 
