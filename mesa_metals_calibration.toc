@@ -1,0 +1,6 @@
+\contentsline {section}{Section 1: Setup}{2}{section*.2}%
+\contentsline {section}{Section 2: Arsenic Case Study, Regression Results Replication Attempt}{2}{section*.3}%
+\contentsline {section}{Section 3: Iterate Regression for All Arsenic}{2}{section*.4}%
+\contentsline {section}{Section 4: Plot Arsenic Regression Lines and Intercept vs Slope}{3}{section*.5}%
+\contentsline {section}{Section 5: All Elements Data Manipulation}{4}{section*.6}%
+\contentsline {section}{Section 6: Plot All Elements Regression Lines and Intercept vs Slope}{4}{section*.7}%

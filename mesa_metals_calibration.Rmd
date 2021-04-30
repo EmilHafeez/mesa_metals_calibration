@@ -1,6 +1,6 @@
 ---
-title: "Metals in MESA Calibration Data Cleaning and Analysis Replication"
-author: "Emil Hafeez, eh2928"
+title: "MESA Metals: Examining Variability within Calibration Curves"
+author: ""
 geometry: "left=2.57cm,right=2.57cm,top=2.57cm,bottom=2.57cm"
 output:
   pdf_document:
@@ -19,8 +19,12 @@ header-includes:
 - \fancypagestyle{plain}{\pagestyle{fancy}}
 --- 
 
+\newpage
+
 # Section 1: Setup
 
+NB a lot of the code is hidden in the PDF; investigating via visualization here.
+ 
 ```{r, include = F}
 library(tidyverse)
 library(readxl)
@@ -38,10 +42,17 @@ options(
   ggplot2.discrete.colour = "viridis",
   ggplot2.discrete.fill = "viridis"
 )
+
+knitr::opts_chunk$set(fig.align="center")
+
 ```
 
-```{r}
-#read in, make csv for safekeeping and easier downstream editing
+# Section 2: Arsenic Case Study, Regression Results Replication Attempt
+
+This section reads in just one date's one calibration iteration number, for arsenic only. Then, we can fit a regression to this (the blank corrected concentrations regressed on the standard concentrations).
+
+```{r, include = F}
+#read in, basic tidy
 arsenic_As_df = read_excel(
   "./data/Calibration_check_MESA_04012021.xlsx", 
   sheet = "arsenic_As ",
@@ -51,9 +62,7 @@ arsenic_As_df = read_excel(
   filter(!is.na(date))
 ```
 
-# Section 2: Testing how they got their regression results
-
-```{r}
+```{r, include = F}
 arsenic_As_test = 
   arsenic_As_df %>% 
   filter(date == "2020-01-08" & no_cal == 1)
@@ -61,32 +70,22 @@ arsenic_As_test =
 glm_fit = glm(as_o_blk_corrected ~ std_conc_ppb, 
     data = arsenic_As_test,
     family = gaussian(link = "identity")) 
+```
 
+Printing this regression output,
+
+```{r}
 summary(glm_fit)
 ```
 
-```{r try again}
-# It seems like Rony is saying that Kathrin's approach in the Excel sheet isn't precisely the way that their program does it, and that to replicate their results might need the manipulations that Rony describes (and seems to use the last sheet from the Excel). However these manipulations seem to appear in the Excel sheet (BLK corrected column name) and do not create the regression results in the Excel.
+We can see this is not a precise replication of the first arsenic regression. This is close to the Excel sheet results but not sufficient; arsenic's 1/8/20 Calibration 1 has intercept and beta estimates of about -179.92 and 6887.72 but these show have about -124.99 and 6871.96. 
 
-#Rony's email describes the following manipulation conducted by their program: take the aso_cps and divide it by the std_conc_ppb, then subtract off the first aso_cps aka the blank signal. This does not replicate what is in the Excel. Using the blank-corrected values from the excl does not either.
-# arsenic_As_test_3 =
-#   arsenic_As_df %>%
-#   filter(date == "2020-01-08" & no_cal == 1) %>%
-#   mutate(
-#     zeroer = ((as_o_cps/std_conc_ppb))
-#   ) 
-# 
-# glm_fit = glm(zeroer ~ std_conc_ppb,
-#     data = arsenic_As_test_3,
-#     family = gaussian(link = "identity"))
-# 
-# summary(glm_fit)
-```
+I am not able to replicate the Excel result by trying different tuning approaches (is there a weight being implemented, maybe from the last sheet?). Additionally, this is not the same regression as the spectroscopy program uses at all, as per Rony's 4/1/21 email. This must be revisited and scaled across the document, but works to start looking at the patterns.
 
 # Section 3: Iterate Regression for All Arsenic
-Let's iterate for one element.
 
-```{r}
+Let's iterate for each date and calibration number, for one element.
+```{r, include = F}
 arsenic_results_df =
   arsenic_As_df %>%
   filter(!is.na(date)) %>% 
@@ -103,8 +102,9 @@ arsenic_results_df =
 
 # Section 4: Plot Arsenic Regression Lines and Intercept vs Slope
 
-Regression Lines
-```{r}
+Then we look at these regression lines. Each unique combination of date and calibration number are their own regression line, as in the Excel.
+
+```{r, echo = F}
 arsenic_As_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
@@ -123,9 +123,8 @@ ggplot(
          title = "Visualizing Slopes vs Intercepts", 
          caption = "Examining the variability of arsenic as a case study")
 ```
-
 Focusing on these regression lines, let's take a look at the intercepts against the slopes. 
-```{r}
+```{r, echo = F}
 arsenic_results_df %>% 
   select(date, no_cal, term, estimate) %>% 
   pivot_wider(
@@ -142,7 +141,7 @@ ggplot(
     color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
     shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
   ) +
-  geom_point() + 
+  geom_point(size = 5) + 
   scale_x_continuous(breaks = seq(-250, 50, 25)) +
   scale_y_continuous(breaks = seq(0, 15000, 1000)) +
     labs(color = "Regressions per \nDate.CalibrationNumber",
@@ -150,9 +149,13 @@ ggplot(
          title = "Visualizing Intercepts vs Slopes", 
          caption = "Examining the variability of arsenic as a case study")
 ```
-# Section 5: All Element Iteration
-Now let's work on iterating for all elements (organized by Excel sheets within the workbook).
-```{r}
+
+# Section 5: All Elements Data Manipulation
+
+Great. Now let's work on iterating for all elements (organized per Excel sheets within the workbook).
+
+I read in the data.
+```{r, include = F}
 path =
   "./data/Calibration_check_MESA_04012021.xlsx"
 
@@ -169,8 +172,8 @@ mesa_metals_list =
   mesa_metals_list[-c(1,19)]
 ```
 
-Now to iterate the regressions for each of the (date,no_cal) groups within each element.
-```{r}
+Then, iterate the regressions for each of the (date,no_cal) groups within each element.
+```{r, include = F}
 mesa_metals_df = as_tibble(matrix(mesa_metals_list)) %>% 
   rename(elements_data = V1)
 
@@ -185,10 +188,12 @@ mesa_metals_df =
   filter(!is.na(date))
 ```
 
-#Section 6: Plot All Elements
 
-Regression Lines With Data
-```{r, message = F, warning = F}
+# Section 6: Plot All Elements Regression Lines and Intercept vs Slope
+
+Then, we're in a position to visualize the regression lines, and add the raw data to the plot just to see.
+
+```{r, message = F, warning = F, echo = F, fig.fullwidth = TRUE}
 mesa_metals_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
@@ -209,8 +214,11 @@ ggplot(
   facet_wrap(~elements, scales = "free")
 ```
 
-Resume here: make the all_elements_results_df and then graph it. Try using the arsenic_results as a case study
-```{r warning = F}
+Interesting. There is some substantial variability between estimates within each element. Will think more on this. Note that thallium_Tl has a high value that is visible in the raw data (Excel too). 
+
+Like we did for arsenic, let's look at the intercepts vs slopes for these regression lines, per element also. 
+
+```{r, warning = F, message = F, include = F}
 #make the results df
 mesa_metals_results_df = 
   mesa_metals_df %>% 
@@ -224,7 +232,9 @@ mesa_metals_results_df =
   ) %>%
   select(elements, date, no_cal, results) %>%
   unnest(results)
+```
 
+```{r, echo = F, message = F, warning = F, fig.fullwidth = TRUE}
 #plot it
 mesa_metals_results_df %>% 
   select(elements, date, no_cal, term, estimate) %>% 
@@ -240,10 +250,10 @@ ggplot(
     y = beta_hat, 
     group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))), 
     color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
-    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
-    size = 5)
+    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six")))
+    )
   ) +
-  geom_point() + 
+  geom_point(size = 5) + 
     labs(color = "Regressions per \nDate.CalibrationNumber",
          shape = "Regressions per \nDate.CalibrationNumber",
          title = "Visualizing intercepts vs slopes", 
