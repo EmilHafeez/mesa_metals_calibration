@@ -14,6 +14,9 @@ output:
 header-includes:
 - \usepackage{fancyhdr}
 - \usepackage{lipsum}
+- \usepackage{pdflscape}
+- \newcommand{\blandscape}{\begin{landscape}}
+- \newcommand{\elandscape}{\end{landscape}}
 - \pagestyle{fancy}
 - \fancyhead[R]{\thepage}
 - \fancypagestyle{plain}{\pagestyle{fancy}}
@@ -191,9 +194,12 @@ mesa_metals_df =
 
 # Section 6: Plot All Elements Regression Lines and Intercept vs Slope
 
-Then, we're in a position to visualize the regression lines, and add the raw data to the plot just to see.
+Then, we're in a position to visualize the regression lines, and add the raw data to the plot just to see:
 
-```{r, message = F, warning = F, echo = F, fig.fullwidth = TRUE}
+\newpage
+\blandscape
+
+```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
 mesa_metals_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
@@ -234,7 +240,7 @@ mesa_metals_results_df =
   unnest(results)
 ```
 
-```{r, echo = F, message = F, warning = F, fig.fullwidth = TRUE}
+```{r, echo = F, message = F, warning = F, fig.width= 25.37, fig.height = 19.02}
 #plot it
 mesa_metals_results_df %>% 
   select(elements, date, no_cal, term, estimate) %>% 
@@ -261,3 +267,5 @@ ggplot(
          caption = "Examining the variability of intercepts vs slopes, by element, per date:calibration group") +
   facet_wrap(~elements, scales = "free")
 ```
+
+\elandscape
