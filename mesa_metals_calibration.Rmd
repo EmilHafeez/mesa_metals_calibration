@@ -188,7 +188,7 @@ mesa_metals_df =
 #Section 6: Plot All Elements
 
 Regression Lines With Data
-```{r}
+```{r, message = F, warning = F}
 mesa_metals_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
@@ -209,42 +209,45 @@ ggplot(
   facet_wrap(~elements, scales = "free")
 ```
 
+Resume here: make the all_elements_results_df and then graph it. Try using the arsenic_results as a case study
+```{r warning = F}
+#make the results df
+mesa_metals_results_df = 
+  mesa_metals_df %>% 
+  filter(!is.na(date)) %>% 
+  nest(data = c(std_conc_ppb, cps, cps_blk_corrected)) %>%
+  mutate(
+    models =
+      map(.x = data, ~glm(cps_blk_corrected ~ std_conc_ppb, data = .x,
+                     family = gaussian(link = "identity"))),
+    results = map(models, broom::tidy)
+  ) %>%
+  select(elements, date, no_cal, results) %>%
+  unnest(results)
 
-
-
-
-
-
-
-
-Intercepts vs Slopes
-```{r}
-#this is what I had but needs to be corrected
-mesa_metals_df %>% 
+#plot it
+mesa_metals_results_df %>% 
+  select(elements, date, no_cal, term, estimate) %>% 
+  pivot_wider(
+    names_from = "term",
+    values_from = c("estimate")) %>% 
+  rename(intercept = c("(Intercept)")) %>% 
+  rename(beta_hat = c("std_conc_ppb")) %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
   aes(
-    x = std_conc_ppb, 
-    y = as_o_blk_corrected, 
-    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
-    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
-    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
+    x = intercept, 
+    y = beta_hat, 
+    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
+    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
+    size = 5)
   ) +
   geom_point() + 
-  scale_x_continuous(breaks = seq(0, 5, 1)) +
-  scale_y_continuous(breaks = seq(0, 50000, 10000)) +
-  labs(color = "Regressions per \nDate.CalibrationNumber",
-       shape = "Regressions per \nDate.CalibrationNumber")
+    labs(color = "Regressions per \nDate.CalibrationNumber",
+         shape = "Regressions per \nDate.CalibrationNumber",
+         title = "Visualizing intercepts vs slopes", 
+         subtitle = "Faceted by elements", 
+         caption = "Examining the variability of intercepts vs slopes, by element, per date:calibration group") +
+  facet_wrap(~elements, scales = "free")
 ```
-
-
-
-#Section 4 WIP Clutter
-Fix the arsenic scatterplot:
-pivot the results_df so that the estimate and the intercept are in their own columns, and then graph these against each other per date:no_cal
-
-Tune the caption and stuff for it too
-
-and then; do this for the last section. I guess run the same map functions as the arsenic_results_df and then pivot in the same way as the above chart; and then plot this as above
-
-Then... polish this up nicely for sharing
