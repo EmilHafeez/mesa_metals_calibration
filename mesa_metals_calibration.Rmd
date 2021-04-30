@@ -119,12 +119,13 @@ ggplot(
     shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
   ) +
   stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) + 
-  geom_point() + 
+  geom_point(size = 3) + 
   scale_y_continuous(breaks = seq(0, 50000, 10000)) +
     labs(color = "Regressions per \nDate.CalibrationNumber",
          shape = "Regressions per \nDate.CalibrationNumber",
-         title = "Visualizing Slopes vs Intercepts", 
-         caption = "Examining the variability of arsenic as a case study")
+         title = "Regressing Corrected Blank Concentration on Standard Concentration", 
+         caption = "Examining the variability of arsenic as a case study") +
+    scale_shape_manual(values=seq(0,9))
 ```
 Focusing on these regression lines, let's take a look at the intercepts against the slopes. 
 ```{r, echo = F}
@@ -144,13 +145,14 @@ ggplot(
     color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
     shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
   ) +
-  geom_point(size = 5) + 
+  geom_point(size = 3) + 
   scale_x_continuous(breaks = seq(-250, 50, 25)) +
   scale_y_continuous(breaks = seq(0, 15000, 1000)) +
     labs(color = "Regressions per \nDate.CalibrationNumber",
          shape = "Regressions per \nDate.CalibrationNumber",
          title = "Visualizing Intercepts vs Slopes", 
-         caption = "Examining the variability of arsenic as a case study")
+         caption = "Examining the variability of arsenic as a case study") +
+    scale_shape_manual(values=seq(0,9))
 ```
 
 # Section 5: All Elements Data Manipulation
@@ -198,7 +200,6 @@ Then, we're in a position to visualize the regression lines, and add the raw dat
 
 \pagestyle{fancy}
 \fancyhf{}
-\lipsum[1]
 \newpage
 \paperwidth=\pdfpageheight
 \paperheight=\pdfpagewidth
@@ -209,7 +210,7 @@ Then, we're in a position to visualize the regression lines, and add the raw dat
 \vsize=\textwidth
 \hsize=\textheight
 
-```{r, message = F, warning = F, echo = F, fig.width= 30, fig.height = 25.02}
+```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
 mesa_metals_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
@@ -227,12 +228,14 @@ ggplot(
          title = "Regressing Corrected Blank Concentration on Standard Concentration", 
          subtitle = "Faceted by Elements", 
          caption = "Examining the variability between regression lines, by element, per date:calibration group") +
-  facet_wrap(~elements, scales = "free")
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(0,9)) + 
+  theme_bw(base_size = 30)
 ```
 
 Interesting. There is some substantial variability between estimates within each element. Will think more on this. Note that thallium_Tl has a high value that is visible in the raw data (Excel too). 
 
-Like we did for arsenic, let's look at the intercepts vs slopes for these regression lines, per element also. 
+Like we did for arsenic, let's look at the intercepts vs slopes for these regression lines, per element also. Note cobalt's additional calibration numbers.
 
 ```{r, warning = F, message = F, include = F}
 #make the results df
@@ -250,7 +253,7 @@ mesa_metals_results_df =
   unnest(results)
 ```
 
-```{r, echo = F, message = F, warning = F, fig.width= 25.37, fig.height = 19.02}
+```{r, echo = F, message = F, warning = F, fig.fullwidth=TRUE}
 #plot it
 mesa_metals_results_df %>% 
   select(elements, date, no_cal, term, estimate) %>% 
@@ -269,13 +272,15 @@ ggplot(
     shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six")))
     )
   ) +
-  geom_point(size = 5) + 
+  geom_point(size = 3) + 
     labs(color = "Regressions per \nDate.CalibrationNumber",
          shape = "Regressions per \nDate.CalibrationNumber",
          title = "Visualizing intercepts vs slopes", 
          subtitle = "Faceted by elements", 
          caption = "Examining the variability of intercepts vs slopes, by element, per date:calibration group") +
-  facet_wrap(~elements, scales = "free")
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(15,23)) + 
+  theme_bw(base_size = 8)
 ```
 
 \endgroup
