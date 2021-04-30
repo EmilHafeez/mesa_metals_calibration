@@ -196,10 +196,20 @@ mesa_metals_df =
 
 Then, we're in a position to visualize the regression lines, and add the raw data to the plot just to see:
 
+\pagestyle{fancy}
+\fancyhf{}
+\lipsum[1]
 \newpage
-\blandscape
+\paperwidth=\pdfpageheight
+\paperheight=\pdfpagewidth
+\pdfpageheight=\paperheight
+\pdfpagewidth=\paperwidth
+\headwidth=\textheight
+\begingroup 
+\vsize=\textwidth
+\hsize=\textheight
 
-```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
+```{r, message = F, warning = F, echo = F, fig.width= 30, fig.height = 25.02}
 mesa_metals_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
@@ -268,4 +278,10 @@ ggplot(
   facet_wrap(~elements, scales = "free")
 ```
 
-\elandscape
+\endgroup
+\newpage
+\paperwidth=\pdfpageheight
+\paperheight=\pdfpagewidth
+\pdfpageheight=\paperheight
+\pdfpagewidth=\paperwidth
+\headwidth=\textwidth
