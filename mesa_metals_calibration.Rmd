@@ -111,58 +111,47 @@ ggplot(
   aes(
     x = std_conc_ppb, 
     y = as_o_blk_corrected, 
-    group = interaction(date,no_cal), 
-    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
+    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
+    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
   ) +
   stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) + 
-  scale_y_continuous(breaks = seq(0, 50000, 10000)) +
-    labs(color = "Regressions per \nDate.CalibrationNumber")
-```
-Intercepts vs Slopes
-```{r}
-arsenic_As_df %>% 
-  mutate(date = as.factor(date)) %>% 
-ggplot(
-  aes(
-    x = std_conc_ppb, 
-    y = as_o_blk_corrected, 
-    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
-    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
-    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
-  ) +
   geom_point() + 
-  scale_x_continuous(breaks = seq(0, 5, 1)) +
   scale_y_continuous(breaks = seq(0, 50000, 10000)) +
     labs(color = "Regressions per \nDate.CalibrationNumber",
          shape = "Regressions per \nDate.CalibrationNumber",
          title = "Visualizing Slopes vs Intercepts", 
          caption = "Examining the variability of arsenic as a case study")
 ```
-#troubleshooting the above plot
+
+Focusing on these regression lines, let's take a look at the intercepts against the slopes. 
 ```{r}
 arsenic_results_df %>% 
+  select(date, no_cal, term, estimate) %>% 
+  pivot_wider(
+    names_from = "term",
+    values_from = c("estimate")) %>% 
+  rename(intercept = c("(Intercept)")) %>% 
+  rename(beta_hat = c("std_conc_ppb")) %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
   aes(
-    x = std_conc_ppb, 
-    y = as_o_blk_corrected, 
+    x = intercept, 
+    y = beta_hat, 
     group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
     color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
     shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
   ) +
   geom_point() + 
-  scale_x_continuous(breaks = seq(0, 5, 1)) +
-  scale_y_continuous(breaks = seq(0, 50000, 10000)) +
+  scale_x_continuous(breaks = seq(-250, 50, 25)) +
+  scale_y_continuous(breaks = seq(0, 15000, 1000)) +
     labs(color = "Regressions per \nDate.CalibrationNumber",
          shape = "Regressions per \nDate.CalibrationNumber",
-         title = "Visualizing Slopes vs Intercepts", 
+         title = "Visualizing Intercepts vs Slopes", 
          caption = "Examining the variability of arsenic as a case study")
 ```
-
-
-
 # Section 5: All Element Iteration
-Now let's work on iterating for all elements (organized by Excel sheet).
+Now let's work on iterating for all elements (organized by Excel sheets within the workbook).
 ```{r}
 path =
   "./data/Calibration_check_MESA_04012021.xlsx"
@@ -194,12 +183,11 @@ mesa_metals_df =
   mesa_metals_df %>%
   unnest(cols = elements_data) %>% 
   filter(!is.na(date))
-
 ```
 
 #Section 6: Plot All Elements
 
-Regression Lines
+Regression Lines With Data
 ```{r}
 mesa_metals_df %>% 
   mutate(date = as.factor(date)) %>% 
@@ -207,19 +195,31 @@ ggplot(
   aes(
     x = std_conc_ppb, 
     y = cps_blk_corrected, 
-    group = interaction(date,no_cal), 
-    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))))
-  ) +
-  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) + 
+    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))), 
+    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
+    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
+  )) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
+  geom_point() + 
     labs(color = "Regressions per \nDate.CalibrationNumber",
+         shape = "Regressions per \nDate.CalibrationNumber",
          title = "Regressing Corrected Blank Concentration on Standard Concentration", 
          subtitle = "Faceted by Elements", 
          caption = "Examining the variability between regression lines, by element, per date:calibration group") +
   facet_wrap(~elements, scales = "free")
 ```
 
+
+
+
+
+
+
+
+
 Intercepts vs Slopes
 ```{r}
+#this is what I had but needs to be corrected
 mesa_metals_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
