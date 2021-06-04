@@ -1,5 +1,5 @@
 ---
-title: "MESA Metals: Examining Variability within Calibration Curves"
+title: "MESA Metals 2: Examining Variability within Calibration Curves"
 author: ""
 geometry: "left=2.57cm,right=2.57cm,top=2.57cm,bottom=2.57cm"
 output:
@@ -26,9 +26,10 @@ header-includes:
 
 # Section 1: Setup & Summary
 
-Note that most of the code is hidden in the PDF, and we primarily look at visualizations here.
+Let's revisit the regression analysis and compare old and new calibrations, using the new (5/10/21) dataset. Mostly, this is to make sure there aren't systematic differences (between old and new calibrations), and then we can move into the lower range to determine values that were below the LOD. 
 
 ## Summary
+TO EDIT
 
 Overall, the procedure is as follows:
     1. Run a regression for a single calibration and single data of a single chemical (arsenic chosen)
