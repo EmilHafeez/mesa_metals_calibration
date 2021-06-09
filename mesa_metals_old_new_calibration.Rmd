@@ -215,7 +215,7 @@ ggplot(
 
 Great. Now let's work on iterating for all elements (organized per Excel sheets within the workbook).
 
-I read in the data.
+I read in the data, then, iterate the regressions for each of the (date,no_cal) groups within each element.
 ```{r, include = F}
 path =
   "./data/210429_MESA totals calibration comparison_for Jeff and Emil.xlsx"
@@ -228,54 +228,41 @@ mesa_metals_list = path %>%
       range = "A3:E56", 
       col_names = c("concentration_ug_old","net_signal_old","x3","concentration_ug_new","net_signal_new"))
 
-#don't need the first and last sheet, "General" and "Distribution_sample_std"
-mesa_metals_list = 
-  mesa_metals_list[-c(1,19)]
 ```
 
-```{r}
-#need to figure out a way to add the necessary tidying variables within each element, i think this will be a map
-
-
-
-rename(
-    concentration_ug_old = concentration_ug_l_1,
-    concentration_ug_new =  concentration_ug_l_4,
-    net_signal_old = net_signal_counts_per_second_2,
-    net_signal_new = net_signal_counts_per_second_5,
-    no_cal_old = x3
-  ) %>% 
-  mutate(
-    no_cal_new = NA
-  ) %>% 
-  mutate(
-    run_old = rep(1:7, length.out = 54),
-    run_new = rep(1:11, length.out = 54)
-  ) %>% 
-  mutate(
-    no_cal_old = rep(1:8, each = 7, length.out = 54),
-    no_cal_new = rep(1:8, each = 11, length.out = 54)
-  ) %>% 
-  select(no_cal_old, run_old, concentration_ug_old, net_signal_old, no_cal_new, run_new, concentration_ug_new, net_signal_new, everything())
-```
-
-
-Then, iterate the regressions for each of the (date,no_cal) groups within each element.
 ```{r, include = F}
 mesa_metals_df = as_tibble(matrix(mesa_metals_list)) %>% 
   rename(elements_data = V1)
 
 mesa_metals_df = 
   mesa_metals_df %>% 
-  add_column(elements = c("cobalt_Co", "nickel_Ni", "zinc_Zn", "copper_Cu", "strontium_Sr", "molybdenum_Mo", "antimony_Sb", "cesium_Cs", "barium_Ba", "tungsten_W", "thallium_Tl", "lead_Pb", "uranium_U", "manganese_Mn", "selenium_Se", "arsenic_As", "cadmium_Cd")) %>% 
+  add_column(elements = c("cobalt_Co", "nickel_Ni", "zinc_Zn", "copper_Cu", "strontium_Sr", "molybdenum_Mo", "cesium_Cs", "barium_Ba", "tungsten_W", "thallium_Tl", "lead_Pb", "uranium_U", "manganese_Mn", "selenium_Se", "arsenic_As", "cadmium_Cd")) %>% 
   select(elements, everything())
 
 mesa_metals_df =
   mesa_metals_df %>%
-  unnest(cols = elements_data) %>% 
-  filter(!is.na(date))
+  unnest(cols = elements_data)
 ```
 
+```{r}
+#need to figure out a way to add the necessary tidying variables within each element, i think this will be a map
+mesa_metals_df = 
+  mesa_metals_df %>% 
+rename(
+    no_cal_old = x3
+  ) %>% 
+  mutate(
+    
+    no_cal_new = NA
+  ) %>% 
+  group_by(elements) %>% 
+  mutate(
+    no_cal_old = rep(1:7, each = 7, length.out = length(elements)),
+    no_cal_new = rep(1:5, each = 11, length.out = length(elements))
+  ) %>% 
+  ungroup(elements) %>% 
+  select(elements, no_cal_old, concentration_ug_old, net_signal_old, no_cal_new, concentration_ug_new, net_signal_new, everything())
+```
 
 # Section 6: Plot All Elements Regression Lines and Intercept vs Slope
 
