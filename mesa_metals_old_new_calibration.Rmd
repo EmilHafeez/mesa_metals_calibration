@@ -245,7 +245,6 @@ mesa_metals_df =
 ```
 
 ```{r}
-#need to figure out a way to add the necessary tidying variables within each element, i think this will be a map
 mesa_metals_df = 
   mesa_metals_df %>% 
 rename(
@@ -282,22 +281,23 @@ Then, we're in a position to visualize the regression lines, and add the raw dat
 
 ```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
 mesa_metals_df %>% 
-  mutate(date = as.factor(date)) %>% 
+  mutate(no_cal_old = as.factor(no_cal_old)) %>% 
 ggplot(
   aes(
-    x = std_conc_ppb, 
-    y = cps_blk_corrected, 
-    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))), 
-    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
-    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
-  )) +
+    x = concentration_ug_old, 
+    y = net_signal_old, 
+    group = no_cal_old, 
+    color = no_cal_old,
+    shape = no_cal_old,
+  )
+  ) +
   stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
   geom_point() + 
-    labs(color = "Regressions per \nDate.CalibrationNumber",
-         shape = "Regressions per \nDate.CalibrationNumber",
-         title = "Regressing Corrected Blank Concentration on Standard Concentration", 
+    labs(color = "Regressions per Calibration",
+         shape = "Regressions per Calibration",
+         title = "Regressing Corrected Sample Concentration on Standard Concentration", 
          subtitle = "Faceted by Elements", 
-         caption = "Examining the variability between regression lines, by element, per date:calibration group") +
+         caption = "Examining the variability between regression lines, by element, per calibration group") +
   facet_wrap(~elements, scales = "free") +
     scale_shape_manual(values=seq(0,9)) + 
   theme_bw(base_size = 30)
