@@ -161,19 +161,19 @@ As_results_df =
 
 # Section 4: Plot Arsenic Regression Lines and Intercept vs Slope
 
-Then we look at these regression lines. Each unique calibration run is its own regression line, as in the Excel structure. Here, we just do the older arsenic data (and then we'll look at all old and new data for all elements later).
+Then we look at these regression lines. Each unique calibration run is its own regression line, as in the Excel structure. Here, we just do the newer arsenic data (and then we'll look at all old and new data for all elements later).
 
 ```{r, echo = F}
 As_df %>% 
-  mutate(no_cal_old = as.factor(no_cal_old)) %>% 
-  filter(!is.na(concentration_ug_old)) %>% 
+  mutate(no_cal_new = as.factor(no_cal_new)) %>% 
+  filter(!is.na(concentration_ug_new)) %>% 
 ggplot(
   aes(
-    x = concentration_ug_old, 
-    y = net_signal_old, 
-    group = no_cal_old, 
-    color = no_cal_old,
-    shape = no_cal_old)
+    x = concentration_ug_new, 
+    y = net_signal_new, 
+    group = no_cal_new, 
+    color = no_cal_new,
+    shape = no_cal_new)
   ) +
   stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) + 
   geom_point(size = 3) + 
@@ -184,32 +184,31 @@ ggplot(
     scale_shape_manual(values=seq(0,7))
 ```
 
-Focusing on these regression lines, let's take a look at the intercepts against the slopes. 
+Focusing on these regression lines based on the newer arsenic data, let's take a look at the intercepts against the slopes. 
 ```{r, echo = F}
-arsenic_results_df %>% 
-  select(date, no_cal, term, estimate) %>% 
+As_new_results_df %>% 
+  select(no_cal_new, term, estimate) %>% 
   pivot_wider(
     names_from = "term",
     values_from = c("estimate")) %>% 
   rename(intercept = c("(Intercept)")) %>% 
-  rename(beta_hat = c("std_conc_ppb")) %>% 
-  mutate(date = as.factor(date)) %>% 
+  rename(beta_hat = c("concentration_ug_new")) %>% 
+  mutate(no_cal_new = as.factor(no_cal_new)) %>% 
 ggplot(
   aes(
     x = intercept, 
     y = beta_hat, 
-    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))), 
-    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))),
-    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three"))))
+    group = no_cal_new, 
+    color = no_cal_new,
+    shape = no_cal_new)
   ) +
   geom_point(size = 3) + 
-  scale_x_continuous(breaks = seq(-250, 50, 25)) +
-  scale_y_continuous(breaks = seq(0, 15000, 1000)) +
-    labs(color = "Regressions per \nDate.CalibrationNumber",
-         shape = "Regressions per \nDate.CalibrationNumber",
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black", size = 0.25) +
+    labs(color = "Regressions per Calibration",
+         shape = "Regressions per Calibration",
          title = "Visualizing Intercepts vs Slopes", 
          caption = "Examining the variability of arsenic as a case study") +
-    scale_shape_manual(values=seq(0,9))
+    scale_shape_manual(values=seq(0,7))
 ```
 
 # Section 5: All Elements Data Manipulation
