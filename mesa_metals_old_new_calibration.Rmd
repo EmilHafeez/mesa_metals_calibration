@@ -122,6 +122,7 @@ It would be helpful to compare this result to what Kathrin and Rony produce usin
 Let's iterate for each calibration number, for one element.
 ```{r, include = F}
 #let's do both the old and the new results separately and then combine
+#old
 As_old_results_df =
   As_df %>%
   filter(!is.na(concentration_ug_old)) %>% 
@@ -135,13 +136,29 @@ As_old_results_df =
   ) %>%
   select(no_cal_old, results) %>%
   unnest(results)
+#new
+As_new_results_df =
+  As_df %>%
+  filter(!is.na(concentration_ug_new)) %>% 
+  select(no_cal_new, run_new, concentration_ug_new, net_signal_new) %>% 
+  nest(data = c(run_new, concentration_ug_new, net_signal_new)) %>%
+  mutate(
+    models =
+      map(.x = data, ~glm(net_signal_new ~ concentration_ug_new, data = .x,
+                     family = gaussian(link = "identity"))),
+    results = map(models, broom::tidy)
+  ) %>%
+  select(no_cal_new, results) %>%
+  unnest(results)
 
-
+#join
+As_results_df = 
+  bind_rows(As_old_results_df, As_new_results_df)
 ```
 
 # Section 4: Plot Arsenic Regression Lines and Intercept vs Slope
 
-Then we look at these regression lines. Each unique combination of date and calibration number are their own regression line, as in the Excel.
+Then we look at these regression lines. Each unique calibration number is its own regression line, as in the Excel.
 
 ```{r, echo = F}
 As_df %>% 
