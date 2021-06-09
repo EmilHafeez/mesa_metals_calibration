@@ -29,7 +29,8 @@ header-includes:
 Let's revisit the regression analysis and compare old and new calibrations, using the new (5/10/21) dataset. Mostly, this is to make sure there aren't systematic differences (between old and new calibrations), and then we can move into the lower range to determine values that were below the LOD. 
 
 ## Summary
-TO EDIT
+TO EDITTO EDITTO EDITTO EDITTO EDITTO EDITTO EDIT
+TO EDITTO EDITTO EDITTO EDITTO EDITTO EDITTO EDIT
 
 Overall, the procedure is as follows:
     1. Run a regression for a single calibration and single data of a single chemical (arsenic chosen)
@@ -40,9 +41,6 @@ Overall, the procedure is as follows:
 We were primarily interested in replicating the regression, and then examining the variability between regression lines per each calibration run, as well as examining the slopes versus the intercepts (since this may be helpful later). See Section 6. 
       
 ## Questions
-
-What regression is implemented in the Excel sheet specifically, and also, what regression should we implement in our analyses? The spectroscopy software computes some transformations and additional changes which do not appear in the Excel. The regressions used here are similar to the Excel sheet (though need adjustment, see Section 2).
-
 
 ```{r, include = F}
 library(tidyverse)
@@ -70,26 +68,44 @@ knitr::opts_chunk$set(fig.align="center")
 
 # Section 2: Arsenic Case Study, Regression Results Replication Attempt
 
-This section reads in just one date's one calibration iteration number, for arsenic only. Then, we can fit a regression to this (the blank corrected concentrations regressed on the standard concentrations).
+This section reads in just one elements calibration data (arsenic only). Then, we can fit a regression to this (the raw counts divided by internal standard, minus the calibration blank).
 
 ```{r, include = F}
-#read in, basic tidy
-arsenic_As_df = read_excel(
-  "./data/Calibration_check_MESA_04012021.xlsx", 
-  sheet = "arsenic_As ",
-  range = "A1:E38") %>% 
+#read in, basic tidy, iterate labels to make nesting possible, as in the first dataset
+As_df = read_excel(
+  "./data/210429_MESA totals calibration comparison_for Jeff and Emil.xlsx", 
+  sheet = "As",
+  range = "A2:E56") %>% 
   janitor::clean_names() %>% 
-  mutate(date = as.Date(as.POSIXct(date))) %>% 
-  filter(!is.na(date))
+  rename(
+    concentration_ug_old = concentration_ug_l_1,
+    concentration_ug_new =  concentration_ug_l_4,
+    net_signal_old = net_signal_counts_per_second_2,
+    net_signal_new = net_signal_counts_per_second_5,
+    no_cal_old = x3
+  ) %>% 
+  mutate(
+    no_cal_new = NA
+  ) %>% 
+  mutate(
+    run_old = rep(1:7, length.out = 54),
+    run_new = rep(1:11, length.out = 54)
+  ) %>% 
+  mutate(
+    no_cal_old = rep(1:8, each = 7, length.out = 54),
+    no_cal_new = rep(1:8, each = 11, length.out = 54)
+  ) %>% 
+  select(no_cal_old, run_old, concentration_ug_old, net_signal_old, no_cal_new, run_new, concentration_ug_new, net_signal_new, everything())
 ```
 
 ```{r, include = F}
-arsenic_As_test = 
-  arsenic_As_df %>% 
-  filter(date == "2020-01-08" & no_cal == 1)
+#test a case
+As_df_test = 
+  As_df %>% 
+  filter(no_cal_old == 1)
 
-glm_fit = glm(as_o_blk_corrected ~ std_conc_ppb, 
-    data = arsenic_As_test,
+glm_fit = glm(net_signal_old ~ concentration_ug_old, 
+    data = As_df_test,
     family = gaussian(link = "identity")) 
 ```
 
@@ -99,25 +115,23 @@ Printing this regression output,
 summary(glm_fit)
 ```
 
-We can see this is not a precise replication of the first arsenic regression. This is close to the Excel sheet results but not sufficient; arsenic's 1/8/20 Calibration 1 has intercept and beta estimates of about -179.92 and 6887.72 but these show have about -124.99 and 6871.96. 
-
-I am not able to replicate the Excel result by trying different tuning approaches (is there a weight being implemented, maybe from the last sheet?). Additionally, this is not the same regression as the spectroscopy program uses at all, as per Rony's 4/1/21 email. This must be revisited and scaled across the document, but works to start looking at the patterns.
+It would be helpful to compare this result to what Kathrin and Rony produce using the spectroscope software.
 
 # Section 3: Iterate Regression for All Arsenic
 
 Let's iterate for each date and calibration number, for one element.
 ```{r, include = F}
-arsenic_results_df =
-  arsenic_As_df %>%
-  filter(!is.na(date)) %>% 
-  nest(data = c(std_conc_ppb, as_o_cps, as_o_blk_corrected)) %>%
+As_results_df =
+  As_df %>%
+  filter(!is.na(concentration_ug_old)) %>% 
+  nest(data = c(concentration_ug_old, net_signal_old)) %>%
   mutate(
     models =
-      map(.x = data, ~glm(as_o_blk_corrected ~ std_conc_ppb, data = .x,
+      map(.x = data, ~glm(net_signal_old ~ concentration_ug_old, data = .x,
                      family = gaussian(link = "identity"))),
     results = map(models, broom::tidy)
   ) %>%
-  select(date, no_cal, results) %>%
+  select(no_cal_old, no_cal, results) %>%
   unnest(results)
 ```
 
