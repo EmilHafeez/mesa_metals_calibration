@@ -119,20 +119,24 @@ It would be helpful to compare this result to what Kathrin and Rony produce usin
 
 # Section 3: Iterate Regression for All Arsenic
 
-Let's iterate for each date and calibration number, for one element.
+Let's iterate for each calibration number, for one element.
 ```{r, include = F}
-As_results_df =
+#let's do both the old and the new results separately and then combine
+As_old_results_df =
   As_df %>%
   filter(!is.na(concentration_ug_old)) %>% 
-  nest(data = c(concentration_ug_old, net_signal_old)) %>%
+  select(no_cal_old, run_old, concentration_ug_old, net_signal_old) %>% 
+  nest(data = c(run_old, concentration_ug_old, net_signal_old)) %>%
   mutate(
     models =
       map(.x = data, ~glm(net_signal_old ~ concentration_ug_old, data = .x,
                      family = gaussian(link = "identity"))),
     results = map(models, broom::tidy)
   ) %>%
-  select(no_cal_old, no_cal, results) %>%
+  select(no_cal_old, results) %>%
   unnest(results)
+
+
 ```
 
 # Section 4: Plot Arsenic Regression Lines and Intercept vs Slope
@@ -140,7 +144,7 @@ As_results_df =
 Then we look at these regression lines. Each unique combination of date and calibration number are their own regression line, as in the Excel.
 
 ```{r, echo = F}
-arsenic_As_df %>% 
+As_df %>% 
   mutate(date = as.factor(date)) %>% 
 ggplot(
   aes(
