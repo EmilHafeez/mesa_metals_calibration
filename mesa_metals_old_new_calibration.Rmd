@@ -218,20 +218,47 @@ Great. Now let's work on iterating for all elements (organized per Excel sheets 
 I read in the data.
 ```{r, include = F}
 path =
-  "./data/Calibration_check_MESA_04012021.xlsx"
+  "./data/210429_MESA totals calibration comparison_for Jeff and Emil.xlsx"
 
 mesa_metals_list = path %>%
   excel_sheets() %>%
   set_names() %>%
   map(read_excel, 
       path = path, 
-      range = "A2:E38", 
-      col_names = c("date","no_cal","std_conc_ppb","cps","cps_blk_corrected"))
+      range = "A3:E56", 
+      col_names = c("concentration_ug_old","net_signal_old","x3","concentration_ug_new","net_signal_new"))
 
 #don't need the first and last sheet, "General" and "Distribution_sample_std"
 mesa_metals_list = 
   mesa_metals_list[-c(1,19)]
 ```
+
+```{r}
+#need to figure out a way to add the necessary tidying variables within each element, i think this will be a map
+
+
+
+rename(
+    concentration_ug_old = concentration_ug_l_1,
+    concentration_ug_new =  concentration_ug_l_4,
+    net_signal_old = net_signal_counts_per_second_2,
+    net_signal_new = net_signal_counts_per_second_5,
+    no_cal_old = x3
+  ) %>% 
+  mutate(
+    no_cal_new = NA
+  ) %>% 
+  mutate(
+    run_old = rep(1:7, length.out = 54),
+    run_new = rep(1:11, length.out = 54)
+  ) %>% 
+  mutate(
+    no_cal_old = rep(1:8, each = 7, length.out = 54),
+    no_cal_new = rep(1:8, each = 11, length.out = 54)
+  ) %>% 
+  select(no_cal_old, run_old, concentration_ug_old, net_signal_old, no_cal_new, run_new, concentration_ug_new, net_signal_new, everything())
+```
+
 
 Then, iterate the regressions for each of the (date,no_cal) groups within each element.
 ```{r, include = F}
