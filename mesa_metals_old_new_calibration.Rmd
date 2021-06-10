@@ -28,6 +28,7 @@ header-includes:
 
 Let's revisit the regression analysis and compare old and new calibrations, using the new (5/10/21) dataset. Mostly, this is to make sure there aren't systematic differences (between old and new calibrations), and then we can move into the lower range to determine values that were below the LOD. 
 
+
 ## Summary
 TO EDITTO EDITTO EDITTO EDITTO EDITTO EDITTO EDIT
 TO EDITTO EDITTO EDITTO EDITTO EDITTO EDITTO EDIT
@@ -47,6 +48,7 @@ library(tidyverse)
 library(readxl)
 library(modelr)
 library(openxlsx)
+library(patchwork)
 ```
 
 ```{r, include = F}
@@ -251,7 +253,6 @@ rename(
     no_cal_old = x3
   ) %>% 
   mutate(
-    
     no_cal_new = NA
   ) %>% 
   group_by(elements) %>% 
@@ -280,7 +281,8 @@ Then, we're in a position to visualize the regression lines, and add the raw dat
 \hsize=\textheight
 
 ```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
-mesa_metals_df %>% 
+ggplot_old_calibrations = 
+  mesa_metals_df %>% 
   mutate(no_cal_old = as.factor(no_cal_old)) %>% 
 ggplot(
   aes(
@@ -295,7 +297,30 @@ ggplot(
   geom_point() + 
     labs(color = "Regressions per Calibration",
          shape = "Regressions per Calibration",
-         title = "Regressing Corrected Sample Concentration on Standard Concentration", 
+         title = "Regressing Old Data, Corrected Sample Concentration on Standard Concentration", 
+         subtitle = "Faceted by Elements", 
+         caption = "Examining the variability between regression lines, by element, per calibration group") +
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(0,9)) + 
+  theme_bw(base_size = 30)
+
+ggplot_new_calibrations = 
+  mesa_metals_df %>% 
+  mutate(no_cal_old = as.factor(no_cal_old)) %>% 
+ggplot(
+  aes(
+    x = concentration_ug_old, 
+    y = net_signal_old, 
+    group = no_cal_old, 
+    color = no_cal_old,
+    shape = no_cal_old,
+  )
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
+  geom_point() + 
+    labs(color = "Regressions per Calibration",
+         shape = "Regressions per Calibration",
+         title = "Regressing New Data, Corrected Sample Concentration on Standard Concentration", 
          subtitle = "Faceted by Elements", 
          caption = "Examining the variability between regression lines, by element, per calibration group") +
   facet_wrap(~elements, scales = "free") +
@@ -303,36 +328,112 @@ ggplot(
   theme_bw(base_size = 30)
 ```
 
-Interesting. There is some substantial variability between estimates within each element. Will think more on this. Note that thallium_Tl has a high value that is visible in the raw data (Excel too). 
+```{r message = F, warning = F}
+patchwork_old_calibrations = 
+  mesa_metals_df %>% 
+  mutate(no_cal_old = as.factor(no_cal_old)) %>% 
+ggplot(
+  aes(
+    x = concentration_ug_old, 
+    y = net_signal_old, 
+    group = no_cal_old, 
+    color = no_cal_old,
+    shape = no_cal_old,
+  )
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
+  geom_point() + 
+    labs(color = "Regression for Calibration Number",
+         shape = "Regression for Calibration Number",
+         title = "Old Data") +
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(0,9))
 
-Like we did for arsenic, let's look at the intercepts vs slopes for these regression lines, per element also. Note cobalt's additional calibration numbers.
+patchwork_new_calibrations = 
+  mesa_metals_df %>% 
+  mutate(no_cal_new = as.factor(no_cal_new)) %>% 
+ggplot(
+  aes(
+    x = concentration_ug_new, 
+    y = net_signal_new, 
+    group = no_cal_new, 
+    color = no_cal_new,
+    shape = no_cal_new,
+  )
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
+  geom_point() + 
+    labs(color = "Regression for Calibration Number",
+         shape = "Regression for Calibration Number",
+         title = "New Data") +
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(0,9)) + 
+  theme(legend.position = "none")
+
+
+(patchwork_new_calibrations + patchwork_old_calibrations) + 
+  plot_layout(guides = "collect") +
+  plot_annotation(
+    title = "Regressing Corrected Sample Concentration on Standard Concentration",
+    subtitle = "Per Calibration Run and Per Element",
+    caption = "Examining the variability between regression lines, by element, per calibration group. Note the old/new data distinction"
+  )
+```
 
 ```{r message=FALSE, warning=FALSE, include=F}
-#make the results df
-mesa_metals_results_df = 
-  mesa_metals_df %>% 
-  filter(!is.na(date)) %>% 
-  nest(data = c(std_conc_ppb, cps, cps_blk_corrected)) %>%
+#make the regression results df for the new and old data
+mesa_metals_old_results_df =
+  mesa_metals_df %>%
+  #filter(!is.na(concentration_ug_old)) %>% 
+  select(elements, no_cal_old, concentration_ug_old, net_signal_old) %>% 
+  nest(data = c(concentration_ug_old, net_signal_old)) %>%
   mutate(
     models =
-      map(.x = data, ~glm(cps_blk_corrected ~ std_conc_ppb, data = .x,
+      map(.x = data, ~glm(net_signal_old ~ concentration_ug_old, data = .x,
                      family = gaussian(link = "identity"))),
     results = map(models, broom::tidy)
   ) %>%
-  select(elements, date, no_cal, results) %>%
+  select(elements, no_cal_old, results) %>%
   unnest(results)
+#new
+mesa_metals_new_results_df =
+  mesa_metals_df %>%
+  #filter(!is.na(concentration_ug_old)) %>% 
+  select(elements, no_cal_new, concentration_ug_new, net_signal_new) %>% 
+  nest(data = c(concentration_ug_new, net_signal_new)) %>%
+  mutate(
+    models =
+      map(.x = data, ~glm(net_signal_new ~ concentration_ug_new, data = .x,
+                     family = gaussian(link = "identity"))),
+    results = map(models, broom::tidy)
+  ) %>%
+  select(elements, no_cal_new, results) %>%
+  unnest(results)
+
+#join
+mesa_metals_results_df = 
+  bind_rows(mesa_metals_old_results_df, mesa_metals_new_results_df) %>% 
+  mutate(
+    old_new_identifier = rep(c("old_data", "new_data"), each = 224, length.out = 384)
+  )
 ```
 
 ```{r, echo = F, message = F, warning = F, fig.fullwidth=TRUE}
 #plot it
-mesa_metals_results_df %>% 
-  select(elements, date, no_cal, term, estimate) %>% 
+test=mesa_metals_results_df %>% 
+  select(elements, no_cal_old, no_cal_new, term, estimate, old_new_identifier) %>% 
   pivot_wider(
     names_from = "term",
     values_from = c("estimate")) %>% 
   rename(intercept = c("(Intercept)")) %>% 
-  rename(beta_hat = c("std_conc_ppb")) %>% 
-  mutate(date = as.factor(date)) %>% 
+  rename(beta_hat = c("concentration_ug_old", "concentration_ug_new")) %>% 
+  mutate(
+    no_cal_old = as.factor(no_cal_old),
+    no_cal_new = as.factor(no_cal_new),
+    beta_hat_combined = coalesce(beta_hat1, beta_hat2)
+    ) %>% 
+  rename(concentration_ug_old = "beta_hat1",
+         concentration_ug_new = "beta_hat2") %>% 
 ggplot(
   aes(
     x = intercept, 
