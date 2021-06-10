@@ -420,7 +420,7 @@ mesa_metals_results_df =
 
 ```{r, echo = F, message = F, warning = F, fig.fullwidth=TRUE}
 #plot it
-test=mesa_metals_results_df %>% 
+mesa_metals_results_df %>% 
   select(elements, no_cal_old, no_cal_new, term, estimate, old_new_identifier) %>% 
   pivot_wider(
     names_from = "term",
@@ -432,15 +432,18 @@ test=mesa_metals_results_df %>%
     no_cal_new = as.factor(no_cal_new),
     beta_hat_combined = coalesce(beta_hat1, beta_hat2)
     ) %>% 
-  rename(concentration_ug_old = "beta_hat1",
-         concentration_ug_new = "beta_hat2") %>% 
+  rename(beta_hat_old_coefficient = "beta_hat1",
+         beta_hat_new_coefficient = "beta_hat2") %>% 
+  mutate(
+    no_cal_combined = coalesce(no_cal_old, no_cal_new)
+  ) %>% 
 ggplot(
   aes(
     x = intercept, 
-    y = beta_hat, 
-    group = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))), 
-    color = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six"))),
-    shape = interaction(date,factor(no_cal, labels = c("Cal_One", "Cal_Two", "Cal_Three", "Cal_Four", "Cal_Five", "Cal_Six")))
+    y = beta_hat_combined, 
+    group = no_cal_combined, 
+    color = no_cal_combined,
+    shape = no_cal_combined
     )
   ) +
   geom_point(size = 3) + 
@@ -449,7 +452,7 @@ ggplot(
          title = "Visualizing intercepts vs slopes", 
          subtitle = "Faceted by elements", 
          caption = "Examining the variability of intercepts vs slopes, by element, per date:calibration group") +
-  facet_wrap(~elements, scales = "free") +
+  facet_wrap(~elements + old_new_identifier, scales = "free") +
     scale_shape_manual(values=seq(15,23)) + 
   theme_bw(base_size = 8)
 ```
