@@ -30,18 +30,14 @@ Let's revisit the regression analysis and compare old and new calibrations, usin
 
 
 ## Summary
-TO EDITTO EDITTO EDITTO EDITTO EDITTO EDITTO EDIT
-TO EDITTO EDITTO EDITTO EDITTO EDITTO EDITTO EDIT
 
 Overall, the procedure is as follows:
     1. Run a regression for a single calibration and single data of a single chemical (arsenic chosen)
     2. Run a regression for all calibration runs of a single chemical (also arsenic)
     3. Run regressions of all runs on all chemicals. This step is likely of the most interest.
-      1. Print plots of these regressions, and also print plots of the intercepts versus their slopes
+      1. Print plots of these regressions, and also print plots of the intercepts versus their slopes.
       
-We were primarily interested in replicating the regression, and then examining the variability between regression lines per each calibration run, as well as examining the slopes versus the intercepts (since this may be helpful later). See Section 6. 
-      
-## Questions
+By plotting, we can examinine the variability between regression lines per each calibration run, as well as examining the slopes versus the intercepts (since this may be helpful later). See Section 6. 
 
 ```{r, include = F}
 library(tidyverse)
@@ -70,7 +66,7 @@ knitr::opts_chunk$set(fig.align="center")
 
 # Section 2: Arsenic Case Study, Regression Results Replication Attempt
 
-This section reads in just one elements calibration data (arsenic only). Then, we can fit a regression to this (the raw counts divided by internal standard, minus the calibration blank).
+This section reads in just one elements calibration data (arsenic only). Then, we fit a regression to this (the raw counts divided by internal standard, minus the calibration blank).
 
 ```{r, include = F}
 #read in, basic tidy, iterate labels to make nesting possible, as in the first dataset
@@ -111,17 +107,17 @@ glm_fit = glm(net_signal_old ~ concentration_ug_old,
     family = gaussian(link = "identity")) 
 ```
 
-Printing this regression output,
+Printing the regression output,
 
 ```{r}
 summary(glm_fit)
 ```
 
-It would be helpful to compare this result to what Kathrin and Rony produce using the spectroscope software.
+It would be helpful to compare this result to what Kathrin and Rony produce using the spectroscope software, since this is not in the Excel sheet. It should match exactly. 
 
 # Section 3: Iterate Regression for All Arsenic
 
-Let's iterate for each calibration number, for one element.
+Let's iterate the regression for each calibration run, for one element (As).
 ```{r, include = F}
 #let's do both the old and the new results separately and then combine
 #old
@@ -163,7 +159,7 @@ As_results_df =
 
 # Section 4: Plot Arsenic Regression Lines and Intercept vs Slope
 
-Then we look at these regression lines. Each unique calibration run is its own regression line, as in the Excel structure. Here, we just do the newer arsenic data (and then we'll look at all old and new data for all elements later).
+Then we look at these regression lines for arsenic. Each unique calibration run is its own regression line, as in the Excel structure. For brevity, we just do the newer arsenic data (and then we'll look at all old and new data for all elements later).
 
 ```{r, echo = F}
 As_df %>% 
@@ -186,7 +182,7 @@ ggplot(
     scale_shape_manual(values=seq(0,7))
 ```
 
-Focusing on these regression lines based on the newer arsenic data, let's take a look at the intercepts against the slopes. 
+Focusing on these regression lines based on the newer arsenic data, let's take a look at the intercepts against the slopes. Note that the vertical line at 0 is for reference.
 ```{r, echo = F}
 As_new_results_df %>% 
   select(no_cal_new, term, estimate) %>% 
@@ -210,14 +206,12 @@ ggplot(
          shape = "Regressions per Calibration",
          title = "Visualizing Intercepts vs Slopes", 
          caption = "Examining the variability of arsenic as a case study") +
-    scale_shape_manual(values=seq(0,7))
+    scale_shape_manual(values=seq(49,57))
 ```
 
 # Section 5: All Elements Data Manipulation
 
-Great. Now let's work on iterating for all elements (organized per Excel sheets within the workbook).
-
-I read in the data, then, iterate the regressions for each of the (date,no_cal) groups within each element.
+Great. Now we's work on iterating for all elements (organized per Excel sheets within the workbook). I read in the data, then, iterate the regressions for each of the (calibration) groups within each element.
 ```{r, include = F}
 path =
   "./data/210429_MESA totals calibration comparison_for Jeff and Emil.xlsx"
@@ -266,7 +260,7 @@ rename(
 
 # Section 6: Plot All Elements Regression Lines and Intercept vs Slope
 
-Then, we're in a position to visualize the regression lines, and add the raw data to the plot just to see:
+Then, we're in a position to visualize the regression lines, and we also add the raw data to the plot. Note that the calibration ranges have changed for some elements, and this impacts the way the results look. However, even with that note, there does appear to be more consistency in the new calibration method.
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -453,7 +447,7 @@ mesa_metals_results_df =
 #          subtitle = "Faceted by elements", 
 #          caption = "Examining the variability of intercepts vs slopes, by element, per date:calibration group") +
 #   facet_wrap(~elements + old_new_identifier, scales = "free") +
-#     scale_shape_manual(values=seq(15,23)) + 
+#     scale_shape_manual(values=seq(49,57)) + 
 #   theme_bw(base_size = 8)
 ```
 
@@ -481,7 +475,7 @@ ggplot(
          shape = "Regressions per Calibration Number",
          title = "Old Data") +
   facet_wrap(~elements, scales = "free") +
-    scale_shape_manual(values=seq(15,23)) + 
+    scale_shape_manual(values=seq(49,57)) + 
   geom_vline(xintercept = 0, linetype = "dashed", color = "black", size = 0.25)
 
 patchwork_new_results = 
@@ -508,7 +502,7 @@ ggplot(
          title = "New Data", 
          subtitle = "Faceted by elements") +
   facet_wrap(~elements, scales = "free") +
-    scale_shape_manual(values=seq(15,23)) + 
+    scale_shape_manual(values=seq(49,57)) + 
   theme(legend.position = "none") + 
   geom_vline(xintercept = 0, linetype = "dashed", color = "black", size = 0.25)
 
