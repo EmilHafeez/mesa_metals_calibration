@@ -601,13 +601,6 @@ Great. Now, we want to compare the calibration fits for different scenarios. Let
 
 
 
-
-
-
-
-
-
-
 \endgroup
 \newpage
 \paperwidth=\pdfpageheight
