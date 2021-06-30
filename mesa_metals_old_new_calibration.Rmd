@@ -240,7 +240,7 @@ mesa_metals_df =
   unnest(cols = elements_data)
 ```
 
-```{r}
+```{r, include = F}
 mesa_metals_df = 
   mesa_metals_df %>% 
 rename(
@@ -258,7 +258,7 @@ rename(
   select(elements, no_cal_old, concentration_ug_old, net_signal_old, no_cal_new, concentration_ug_new, net_signal_new, everything())
 ```
 
-# Section 6: Plot All Elements Regression Lines and Intercept vs Slope
+# Section 6: Plot All Elements
 
 Then, we're in a position to visualize the regression lines, and we also add the raw data to the plot. Note that the calibration ranges have changed for some elements, and this impacts the way the results look. However, even with that note, there does appear to be more consistency in the new calibration method.
 
@@ -274,55 +274,61 @@ Then, we're in a position to visualize the regression lines, and we also add the
 \vsize=\textwidth
 \hsize=\textheight
 
-```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
-# ggplot_old_calibrations = 
-#   mesa_metals_df %>% 
-#   mutate(no_cal_old = as.factor(no_cal_old)) %>% 
-# ggplot(
-#   aes(
-#     x = concentration_ug_old, 
-#     y = net_signal_old, 
-#     group = no_cal_old, 
-#     color = no_cal_old,
-#     shape = no_cal_old,
-#   )
-#   ) +
-#   stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
-#   geom_point() + 
-#     labs(color = "Regressions per Calibration",
-#          shape = "Regressions per Calibration",
-#          title = "Regressing Old Data, Corrected Sample Concentration on Standard Concentration", 
-#          subtitle = "Faceted by Elements", 
-#          caption = "Examining the variability between regression lines, by element, per calibration group") +
-#   facet_wrap(~elements, scales = "free") +
-#     scale_shape_manual(values=seq(0,9)) + 
-#   theme_bw(base_size = 30)
-# 
-# ggplot_new_calibrations = 
-#   mesa_metals_df %>% 
-#   mutate(no_cal_old = as.factor(no_cal_old)) %>% 
-# ggplot(
-#   aes(
-#     x = concentration_ug_old, 
-#     y = net_signal_old, 
-#     group = no_cal_old, 
-#     color = no_cal_old,
-#     shape = no_cal_old,
-#   )
-#   ) +
-#   stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
-#   geom_point() + 
-#     labs(color = "Regressions per Calibration Number",
-#          shape = "Regressions per Calibration Number",
-#          title = "Regressing New Data, Corrected Sample Concentration on Standard Concentration", 
-#          subtitle = "Faceted by Elements", 
-#          caption = "Examining the variability between regression lines, by element, per calibration group") +
-#   facet_wrap(~elements, scales = "free") +
-#     scale_shape_manual(values=seq(0,9)) + 
-#   theme_bw(base_size = 30)
+```{r, include = F}
+rm(As_df, As_df_test, As_new_results_df, As_results_df, As_old_results_df, glm_fit)
 ```
 
-```{r message = F, warning = F}
+## Section 6a: Regression Lines
+
+First, let's look at each calibration run separately. The old data have 6 data points per calibration run, and 7 calibration runs per element. The new data have 10 daata points per calibration run, and 5 calibration runs per element. There are 16 elements. Resolution is set very high to fit it on one page, please zoom in.
+
+```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
+ggplot_old_calibrations =
+  mesa_metals_df %>%
+  mutate(no_cal_old = as.factor(no_cal_old)) %>%
+ggplot(
+  aes(
+    x = concentration_ug_old,
+    y = net_signal_old,
+    group = no_cal_old,
+    color = no_cal_old,
+    shape = no_cal_old,
+  )
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
+  geom_point() +
+    labs(color = "Regressions per Calibration",
+         shape = "Regressions per Calibration",
+         title = "Regressing Old Data, Corrected Sample Concentration on Standard Concentration",
+         subtitle = "Faceted by Elements",
+         caption = "Examining the variability between regression lines, by element, per calibration group") +
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(0,9))
+
+ggplot_new_calibrations =
+  mesa_metals_df %>%
+  mutate(no_cal_old = as.factor(no_cal_old)) %>%
+ggplot(
+  aes(
+    x = concentration_ug_old,
+    y = net_signal_old,
+    group = no_cal_old,
+    color = no_cal_old,
+    shape = no_cal_old,
+  )
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
+  geom_point() +
+    labs(color = "Regressions per Calibration Number",
+         shape = "Regressions per Calibration Number",
+         title = "Regressing New Data, Corrected Sample Concentration on Standard Concentration",
+         subtitle = "Faceted by Elements",
+         caption = "Examining the variability between regression lines, by element, per calibration group") +
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(0,9))
+```
+
+```{r, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
 patchwork_old_calibrations = 
   mesa_metals_df %>% 
   mutate(no_cal_old = as.factor(no_cal_old)) %>% 
@@ -365,7 +371,7 @@ ggplot(
   theme(legend.position = "none")
 
 
-(patchwork_new_calibrations + patchwork_old_calibrations) + 
+(patchwork_old_calibrations + patchwork_new_calibrations) + 
   plot_layout(guides = "collect") +
   plot_annotation(
     title = "Regressing Corrected Sample Concentration on Standard Concentration",
@@ -373,6 +379,67 @@ ggplot(
     caption = "Examining the variability between regression lines, by element, per calibration group. Note the old/new data distinction"
   )
 ```
+
+```{r lengthening the data, include = F}
+mesa_metals_df_longer_old =
+  mesa_metals_df %>% 
+  select(elements, no_cal_old, concentration_ug_old, net_signal_old) %>% 
+  mutate(
+    recency = "old"
+  ) %>% 
+  rename(
+    no_cal = no_cal_old,
+    concentration_ug = concentration_ug_old,
+    net_signal = net_signal_old
+  ) %>% filter(!is.na(concentration_ug))
+
+mesa_metals_df_longer_new =
+  mesa_metals_df %>%
+  select(elements, no_cal_new, concentration_ug_new, net_signal_new) %>% 
+  mutate(
+    recency = "new"
+  ) %>% 
+  rename(
+    no_cal = no_cal_new,
+    concentration_ug = concentration_ug_new,
+    net_signal = net_signal_new
+  ) %>% filter(!is.na(concentration_ug))
+
+mesa_metals_df_longer = 
+  rbind(mesa_metals_df_longer_old, mesa_metals_df_longer_new)
+
+rm(mesa_metals_df_longer_old, mesa_metals_df_longer_new)
+```
+
+Then, let's look at the new versus the old data, maintaining each regression line, but color-coding simply so can compare easily. While the standardized concentration ranges (x-axis) vary from the old to the new data, we overlay the graphs anyways, to get a sense of what consistency is there. Note the special case of lead (Pb). 
+
+```{r plot the overlapping data, message = F, warning = F, echo = F, fig.width= 25.37, fig.height = 19.02}
+mesa_metals_df_longer %>%
+  mutate(elements = as.factor(elements),
+         no_cal = as.factor(no_cal),
+         recency = as.factor(recency)
+         ) %>%
+ggplot(
+  aes(
+    x = concentration_ug,
+    y = net_signal,
+    group = interaction(recency, no_cal),
+    color = interaction(recency),
+    shape = interaction(recency, no_cal)
+  )
+  ) +
+  stat_smooth(method = "lm", formula = y ~ x, se = F, size = .75) +
+  geom_point(show.legend = FALSE) +
+    labs(color = "Regressions per Calibration",
+         shape = "Regressions per Calibration",
+         title = "Regressing Corrected Sample Concentration on Standard Concentration: Old Vs New Data",
+         subtitle = "Per Calibration Run and Per Element",
+         caption = "Examining the variability between regression lines, by element, per calibration group") +
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(49,60))
+```
+
+## Section 6b: Intercept and Slope Coefficients
 
 ```{r message=FALSE, warning=FALSE, include=F}
 #make the regression results df for the new and old data
@@ -412,46 +479,9 @@ mesa_metals_results_df =
   )
 ```
 
-```{r, echo = F, message = F, warning = F, include = F, fig.fullwidth=TRUE}
-#plot it
-# mesa_metals_results_df %>% 
-#   select(elements, no_cal_old, no_cal_new, term, estimate, old_new_identifier) %>% 
-#   pivot_wider(
-#     names_from = "term",
-#     values_from = c("estimate")) %>% 
-#   rename(intercept = c("(Intercept)")) %>% 
-#   rename(beta_hat = c("concentration_ug_old", "concentration_ug_new")) %>% 
-#   mutate(
-#     no_cal_old = as.factor(no_cal_old),
-#     no_cal_new = as.factor(no_cal_new),
-#     beta_hat_combined = coalesce(beta_hat1, beta_hat2)
-#     ) %>% 
-#   rename(beta_hat_old_coefficient = "beta_hat1",
-#          beta_hat_new_coefficient = "beta_hat2") %>% 
-#   mutate(
-#     no_cal_combined = coalesce(no_cal_old, no_cal_new)
-#   ) %>% 
-# ggplot(
-#   aes(
-#     x = intercept, 
-#     y = beta_hat_combined, 
-#     group = no_cal_combined, 
-#     color = no_cal_combined,
-#     shape = no_cal_combined
-#     )
-#   ) +
-#   geom_point(size = 3) + 
-#     labs(color = "Regressions per \nDate.CalibrationNumber",
-#          shape = "Regressions per \nDate.CalibrationNumber",
-#          title = "Visualizing intercepts vs slopes", 
-#          subtitle = "Faceted by elements", 
-#          caption = "Examining the variability of intercepts vs slopes, by element, per date:calibration group") +
-#   facet_wrap(~elements + old_new_identifier, scales = "free") +
-#     scale_shape_manual(values=seq(49,57)) + 
-#   theme_bw(base_size = 8)
-```
+Now, similar to the first regression lines plot, we look at the intercepts versus slopes (x-axis and y-axis respectively) for each of the regressions. This first separates old and new data, per calibration run and per element, and then overlays old and new data (with a simple color-code).
 
-```{r, echo = F, message = F, warning = F, include = T, fig.fullwidth=TRUE}
+```{r intercepts vs slopes, echo = F, message = F, warning = F, include = T, fig.width= 25.37, fig.height = 19.02}
 patchwork_old_results = 
   mesa_metals_old_results_df %>% 
   select(elements,no_cal_old, term, estimate) %>% 
@@ -516,9 +546,67 @@ ggplot(
   )
 ```
 
+```{r intercepts vs slopes overlay, echo = F, message = F, warning = F, include = T, fig.width= 25.37, fig.height = 19.02}
+mesa_metals_results_df %>%
+  select(elements, no_cal_old, no_cal_new, term, estimate, old_new_identifier) %>%
+  pivot_wider(
+    names_from = "term",
+    values_from = c("estimate")) %>%
+  rename(intercept = c("(Intercept)")) %>%
+  rename(beta_hat = c("concentration_ug_old", "concentration_ug_new")) %>%
+  mutate(
+    no_cal_old = as.factor(no_cal_old),
+    no_cal_new = as.factor(no_cal_new),
+    beta_hat_combined = coalesce(beta_hat1, beta_hat2),
+    elements = as.factor(elements),
+    old_new_identifier = as.factor(old_new_identifier)
+    ) %>%
+  rename(beta_hat_old_coefficient = "beta_hat1",
+         beta_hat_new_coefficient = "beta_hat2") %>%
+  mutate(
+    no_cal_combined = coalesce(no_cal_old, no_cal_new)
+  ) %>% 
+  ggplot(
+  aes(
+    x = intercept,
+    y = beta_hat_combined,
+    group = interaction(old_new_identifier, no_cal_combined),
+    color = interaction(old_new_identifier),
+    shape = interaction(old_new_identifier)
+    )
+  ) +
+  geom_point(size = 3) + 
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black", size = 0.25) +
+    labs(color = "Regressions per Calibration",
+         shape = "Regressions per Calibration",
+         title = "Plotting Intercepts vs Slopes for Regressions (x = intercept, y = slope)",
+         subtitle = "Per Calibration Run and Per Element",
+         caption = "Examining the variability between regressing corrected sample concentration on standard concentration, per element, per calibration group. Note the old/new data distinction") +
+  facet_wrap(~elements, scales = "free") +
+    scale_shape_manual(values=seq(49,60))
+```
+
+# Section 7: Comparing Regression Scenarios
+
+Great. Now, we want to compare the calibration fits for different scenarios. Let's compare 1) the existing calibration fits which use all available data versus only if we fit using the low range data points, 2) using only the original calibration points (0, 0.05, 0.1, 0.25, 0.5, and 1 ppb). 
 
 
-Interesting also. We're primarily interested in seeing these intercepts and slopes to see if one is correlated with the other, since this could be useful when we start extrapolating.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \endgroup
 \newpage
